@@ -883,6 +883,38 @@ if search_clicked:
                 </div>
                 """, unsafe_allow_html=True)
 
+            st.markdown("---")
+            st.subheader("Replace professor for schedule change")
+
+            replace_prof = st.selectbox(
+                "Replace professor",
+                options=all_professors,
+                index=all_professors.index(selected_prof) if selected_prof in all_professors else 0,
+                key="replace_prof"
+            )
+
+            replace_with = st.selectbox(
+                "Replace with",
+                options=[p for p in all_professors if p != replace_prof],
+                key="replace_with"
+            )
+
+            st.markdown('<div class="results-bar"><div class="results-title">Revised schedule</div><div class="results-pill">Updated</div></div>', unsafe_allow_html=True)
+            for _, row in results.iterrows():
+                chip_cls, card_cls, chip_label = classify(row["type"])
+                st.markdown(f'''
+<div class="card {card_cls}">
+<div class="card-top"><span class="chip {chip_cls}">{chip_label}</span></div>
+<div class="card-subject">{escape_html(row['subject'])}</div>
+<div class="card-meta">
+<div><div class="meta-label">Professor</div><div class="meta-value">{escape_html(replace_with)}</div></div>
+<div><div class="meta-label">Room</div><div class="meta-value">{escape_html(row['room'])}</div></div>
+<div><div class="meta-label">Division</div><div class="meta-value">{escape_html(row['division'])}</div></div>
+<div><div class="meta-label">Day</div><div class="meta-value">{escape_html(row['day'])}</div></div>
+<div><div class="meta-label">Time</div><div class="meta-value">{escape_html(row['time_slot'])}</div></div>
+</div></div>''', unsafe_allow_html=True)
+
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # FOOTER
