@@ -100,15 +100,6 @@ def _ensure_option(key: str, options: list[str], default: str) -> None:
         st.session_state[key] = default
 
 
-def _on_professor_change() -> None:
-    st.session_state["day_select"] = PLACEHOLDER_DAY
-    st.session_state["time_select"] = PLACEHOLDER_TIME
-
-
-def _on_day_change() -> None:
-    st.session_state["time_select"] = PLACEHOLDER_TIME
-
-
 # ════════════════════════════════════════════════════════════════[...]
 # STYLES
 # ════════════════════════════════════════════════════════════════[...]
@@ -410,23 +401,6 @@ div[data-testid="stButton"] > button[kind="primary"]:active {
     transition-duration: 0.12s !important;
 }
 
-/* ── Change Professor Button ── */
-.change-prof-btn {
-    background: linear-gradient(150deg, var(--crimson-2), var(--maroon-800)) !important;
-    color: #FFF5EE !important;
-    border: none !important;
-    border-radius: 12px !important;
-    font-weight: 700 !important;
-    font-size: 0.88rem !important;
-    letter-spacing: 0.04em !important;
-    padding: 0.5rem 1rem !important;
-    transition:
-        transform 0.28s var(--ease-smooth),
-        box-shadow 0.28s var(--ease-smooth),
-        filter 0.28s var(--ease-smooth) !important;
-    box-shadow: 0 8px 20px -8px rgba(142,18,18,0.55) !important;
-}
-
 /* ── Selection summary ── */
 .selection-track {
     display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
@@ -703,19 +677,18 @@ if not DATA_OK:
 # ════════════════════════════════════════════════════════════════[...]
 # SESSION STATE — safe defaults
 # ════════════════════════════════════════════════════════════════[...]
-for key, default in (
-    ("prof_select", PLACEHOLDER_PROF),
-    ("day_select", PLACEHOLDER_DAY),
-    ("time_select", PLACEHOLDER_TIME),
-):
-    if key not in st.session_state:
-        st.session_state[key] = default
+if "prof_select" not in st.session_state:
+    st.session_state.prof_select = PLACEHOLDER_PROF
+if "day_select" not in st.session_state:
+    st.session_state.day_select = PLACEHOLDER_DAY
+if "time_select" not in st.session_state:
+    st.session_state.time_select = PLACEHOLDER_TIME
 
 
 # ════════════════════════════════════════════════════════════════[...]
 # STEP 1: PROFESSOR SELECTION (Initial Screen)
 # ════════════════════════════════════════════════════════════════[...]
-selected_prof = st.session_state.get("prof_select", PLACEHOLDER_PROF)
+selected_prof = st.session_state.prof_select
 prof_options = [PLACEHOLDER_PROF] + all_professors
 
 # If no professor selected yet, show initial selection screen
@@ -727,8 +700,6 @@ if selected_prof == PLACEHOLDER_PROF:
         </div>
         """, unsafe_allow_html=True)
 
-        _ensure_option("prof_select", prof_options, PLACEHOLDER_PROF)
-        
         prof_filled = " filled" if selected_prof != PLACEHOLDER_PROF else ""
         st.markdown(f'<div class="field-label{prof_filled}">Select your name</div>', unsafe_allow_html=True)
         selected_prof = st.selectbox(
@@ -736,14 +707,15 @@ if selected_prof == PLACEHOLDER_PROF:
             options=prof_options,
             label_visibility="collapsed",
             key="prof_select",
-            on_change=_on_professor_change,
             index=0,
         )
 
 # ════════════════════════════════════════════════════════════════[...]
 # STEP 2: SCHEDULE VIEW (After Professor Selected)
 # ════════════════════════════════════════════════════════════════[...]
-if selected_prof != PLACEHOLDER_PROF:
+if st.session_state.prof_select != PLACEHOLDER_PROF:
+    selected_prof = st.session_state.prof_select
+    
     # Change Professor Button
     st.markdown(f"""
     <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem; align-items: center;">
@@ -753,9 +725,9 @@ if selected_prof != PLACEHOLDER_PROF:
     """, unsafe_allow_html=True)
     
     if st.button("🔄 Change Designated Professor", use_container_width=True):
-        st.session_state["prof_select"] = PLACEHOLDER_PROF
-        st.session_state["day_select"] = PLACEHOLDER_DAY
-        st.session_state["time_select"] = PLACEHOLDER_TIME
+        st.session_state.prof_select = PLACEHOLDER_PROF
+        st.session_state.day_select = PLACEHOLDER_DAY
+        st.session_state.time_select = PLACEHOLDER_TIME
         st.rerun()
 
     # Main Schedule Panel
@@ -770,12 +742,16 @@ if selected_prof != PLACEHOLDER_PROF:
         col1, col2, col3 = st.columns([2.2, 2.2, 1.2], gap="small")
 
         day_options = [PLACEHOLDER_DAY] + _days_for_professor(selected_prof)
-        _ensure_option("day_select", day_options, PLACEHOLDER_DAY)
-        selected_day = st.session_state["day_select"]
+        selected_day = st.session_state.day_select
+        if selected_day not in day_options:
+            st.session_state.day_select = PLACEHOLDER_DAY
+            selected_day = PLACEHOLDER_DAY
 
         time_options = [PLACEHOLDER_TIME] + _times_for_professor_day(selected_prof, selected_day)
-        _ensure_option("time_select", time_options, PLACEHOLDER_TIME)
-        selected_time = st.session_state["time_select"]
+        selected_time = st.session_state.time_select
+        if selected_time not in time_options:
+            st.session_state.time_select = PLACEHOLDER_TIME
+            selected_time = PLACEHOLDER_TIME
 
         with col1:
             day_filled = " filled" if selected_day != PLACEHOLDER_DAY else ""
@@ -785,7 +761,6 @@ if selected_prof != PLACEHOLDER_PROF:
                 options=day_options,
                 label_visibility="collapsed",
                 key="day_select",
-                on_change=_on_day_change,
             )
 
         with col2:
