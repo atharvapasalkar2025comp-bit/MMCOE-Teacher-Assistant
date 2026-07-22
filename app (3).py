@@ -410,6 +410,23 @@ div[data-testid="stButton"] > button[kind="primary"]:active {
     transition-duration: 0.12s !important;
 }
 
+/* ── Change Professor Button ── */
+.change-prof-btn {
+    background: linear-gradient(150deg, var(--crimson-2), var(--maroon-800)) !important;
+    color: #FFF5EE !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    font-size: 0.88rem !important;
+    letter-spacing: 0.04em !important;
+    padding: 0.5rem 1rem !important;
+    transition:
+        transform 0.28s var(--ease-smooth),
+        box-shadow 0.28s var(--ease-smooth),
+        filter 0.28s var(--ease-smooth) !important;
+    box-shadow: 0 8px 20px -8px rgba(142,18,18,0.55) !important;
+}
+
 /* ── Selection summary ── */
 .selection-track {
     display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
@@ -696,244 +713,189 @@ for key, default in (
 
 
 # ════════════════════════════════════════════════════════════════[...]
-# SEARCH PANEL — cascading options derived from CSV per selection step
+# STEP 1: PROFESSOR SELECTION (Initial Screen)
 # ════════════════════════════════════════════════════════════════[...]
+selected_prof = st.session_state.get("prof_select", PLACEHOLDER_PROF)
 prof_options = [PLACEHOLDER_PROF] + all_professors
-_ensure_option("prof_select", prof_options, PLACEHOLDER_PROF)
-selected_prof = st.session_state["prof_select"]
 
-day_options = [PLACEHOLDER_DAY] + _days_for_professor(selected_prof)
-_ensure_option("day_select", day_options, PLACEHOLDER_DAY)
-selected_day = st.session_state["day_select"]
+# If no professor selected yet, show initial selection screen
+if selected_prof == PLACEHOLDER_PROF:
+    with st.container(border=True):
+        st.markdown("""
+        <div class="panel-head">
+          <div class="panel-title">Please enter the professor designated</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-time_options = [PLACEHOLDER_TIME] + _times_for_professor_day(selected_prof, selected_day)
-_ensure_option("time_select", time_options, PLACEHOLDER_TIME)
-selected_time = st.session_state["time_select"]
-
-with st.container(border=True):
-    st.markdown("""
-    <div class="panel-head">
-      <div class="panel-title">Find a lecture</div>
-      <div class="panel-kicker">Faculty → Day → Time</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col1, col2, col3, col4 = st.columns([2.2, 1.4, 2.2, 1.2], gap="small")
-
-    with col1:
+        _ensure_option("prof_select", prof_options, PLACEHOLDER_PROF)
+        
         prof_filled = " filled" if selected_prof != PLACEHOLDER_PROF else ""
-        st.markdown(f'<div class="field-label{prof_filled}">Faculty name</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="field-label{prof_filled}">Select your name</div>', unsafe_allow_html=True)
         selected_prof = st.selectbox(
-            "Faculty name",
+            "Select your name",
             options=prof_options,
             label_visibility="collapsed",
             key="prof_select",
             on_change=_on_professor_change,
+            index=0,
         )
 
-    with col2:
-        day_muted = "" if selected_prof != PLACEHOLDER_PROF else " muted"
-        day_filled = " filled" if selected_day != PLACEHOLDER_DAY else ""
-        st.markdown(f'<div class="field-label{day_muted}{day_filled}">Day</div>', unsafe_allow_html=True)
-        selected_day = st.selectbox(
-            "Day",
-            options=day_options,
-            label_visibility="collapsed",
-            key="day_select",
-            on_change=_on_day_change,
-            disabled=selected_prof == PLACEHOLDER_PROF,
-        )
-
-    with col3:
-        time_muted = "" if selected_day != PLACEHOLDER_DAY else " muted"
-        time_filled = " filled" if selected_time != PLACEHOLDER_TIME else ""
-        st.markdown(f'<div class="field-label{time_muted}{time_filled}">Time slot</div>', unsafe_allow_html=True)
-        selected_time = st.selectbox(
-            "Time slot",
-            options=time_options,
-            label_visibility="collapsed",
-            key="time_select",
-            disabled=selected_day == PLACEHOLDER_DAY,
-        )
-        if selected_prof != PLACEHOLDER_PROF and selected_day != PLACEHOLDER_DAY:
-            n_slots = len(time_options) - 1
-            st.markdown(
-                f'<div class="field-hint">{n_slots} slot{"s" if n_slots != 1 else ""} for this day</div>',
-                unsafe_allow_html=True,
-            )
-
-    with col4:
-        st.markdown('<div class="field-label">&nbsp;</div>', unsafe_allow_html=True)
-        search_clicked = st.button("Search", use_container_width=True, type="primary")
-
-    prof_active = selected_prof != PLACEHOLDER_PROF
-    day_active = selected_day != PLACEHOLDER_DAY
-    time_active = selected_time != PLACEHOLDER_TIME
-
-    prof_disp = escape_html(selected_prof) if prof_active else "—"
-    day_disp = escape_html(selected_day) if day_active else "—"
-    time_disp = escape_html(selected_time) if time_active else "—"
-
+# ════════════════════════════════════════════════════════════════[...]
+# STEP 2: SCHEDULE VIEW (After Professor Selected)
+# ════════════════════════════════════════════════════════════════[...]
+if selected_prof != PLACEHOLDER_PROF:
+    # Change Professor Button
     st.markdown(f"""
-    <div class="selection-track">
-      <span class="sel-chip {'active' if prof_active else ''}">
-        <span>👤</span>
-        <span class="sel-lab">Faculty</span>
-        <span class="sel-val">{prof_disp}</span>
-      </span>
-      <span class="sel-arrow">→</span>
-      <span class="sel-chip {'active' if day_active else ''}">
-        <span>📅</span>
-        <span class="sel-lab">Day</span>
-        <span class="sel-val">{day_disp}</span>
-      </span>
-      <span class="sel-arrow">→</span>
-      <span class="sel-chip {'active' if time_active else ''}">
-        <span>🕐</span>
-        <span class="sel-lab">Time</span>
-        <span class="sel-val">{time_disp}</span>
-      </span>
+    <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem; align-items: center;">
+        <span style="font-size: 0.72rem; font-weight: 600; color: var(--ink-soft); letter-spacing: 0.05em; text-transform: uppercase;">Currently viewing:</span>
+        <span style="font-size: 0.9rem; font-weight: 700; color: var(--crimson-2);">{escape_html(selected_prof)}</span>
     </div>
     """, unsafe_allow_html=True)
+    
+    if st.button("🔄 Change Designated Professor", use_container_width=True):
+        st.session_state["prof_select"] = PLACEHOLDER_PROF
+        st.session_state["day_select"] = PLACEHOLDER_DAY
+        st.session_state["time_select"] = PLACEHOLDER_TIME
+        st.rerun()
 
+    # Main Schedule Panel
+    with st.container(border=True):
+        st.markdown("""
+        <div class="panel-head">
+          <div class="panel-title">Find a lecture</div>
+          <div class="panel-kicker">Day → Time</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-# ════════════════════════════════════════════════════════════════[...]
-# RESULTS
-# ════════════════════════════════════════════════════════════════[...]
-TYPE_CHIP_MAP = {
-    "theory":    ("chip-theory",    "type-theory",    "Theory"),
-    "tutorial":  ("chip-tutorial",  "type-tutorial",  "Tutorial"),
-    "lab":       ("chip-lab",       "type-lab",       "Lab"),
-    "practical": ("chip-practical", "type-practical", "Practical"),
-}
+        col1, col2, col3 = st.columns([2.2, 2.2, 1.2], gap="small")
 
+        day_options = [PLACEHOLDER_DAY] + _days_for_professor(selected_prof)
+        _ensure_option("day_select", day_options, PLACEHOLDER_DAY)
+        selected_day = st.session_state["day_select"]
 
-def classify(ltype: str):
-    t = (ltype or "").lower()
-    if "theory" in t:
-        return TYPE_CHIP_MAP["theory"]
-    if "tutorial" in t:
-        return TYPE_CHIP_MAP["tutorial"]
-    if "lab" in t:
-        return TYPE_CHIP_MAP["lab"]
-    if "practical" in t:
-        return TYPE_CHIP_MAP["practical"]
-    return ("chip-extra", "type-extra", ltype.title() if ltype else "Session")
+        time_options = [PLACEHOLDER_TIME] + _times_for_professor_day(selected_prof, selected_day)
+        _ensure_option("time_select", time_options, PLACEHOLDER_TIME)
+        selected_time = st.session_state["time_select"]
 
+        with col1:
+            day_filled = " filled" if selected_day != PLACEHOLDER_DAY else ""
+            st.markdown(f'<div class="field-label{day_filled}">Day</div>', unsafe_allow_html=True)
+            selected_day = st.selectbox(
+                "Day",
+                options=day_options,
+                label_visibility="collapsed",
+                key="day_select",
+                on_change=_on_day_change,
+            )
 
-if search_clicked:
-    if not (prof_active and day_active and time_active):
-        st.warning("Please select faculty, day, and time slot before searching.")
-    else:
-        results = df[
-            (df["professor"] == selected_prof)
-            & (df["day"] == selected_day)
-            & (df["time_slot"] == selected_time)
-        ].copy()
+        with col2:
+            time_muted = "" if selected_day != PLACEHOLDER_DAY else " muted"
+            time_filled = " filled" if selected_time != PLACEHOLDER_TIME else ""
+            st.markdown(f'<div class="field-label{time_muted}{time_filled}">Time slot</div>', unsafe_allow_html=True)
+            selected_time = st.selectbox(
+                "Time slot",
+                options=time_options,
+                label_visibility="collapsed",
+                key="time_select",
+                disabled=selected_day == PLACEHOLDER_DAY,
+            )
+            if selected_day != PLACEHOLDER_DAY:
+                n_slots = len(time_options) - 1
+                st.markdown(
+                    f'<div class="field-hint">{n_slots} slot{"s" if n_slots != 1 else ""} for this day</div>',
+                    unsafe_allow_html=True,
+                )
 
-        if results.empty:
-            st.markdown(f"""
-            <div class="empty-box">
-              <div class="empty-title">No scheduled session</div>
-              <div class="empty-sub">
-                <b>{escape_html(selected_prof)}</b> has no class on
-                <b>{escape_html(selected_day)}</b> at <b>{escape_html(selected_time)}</b>.
-                This may be a free period.
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
+        with col3:
+            st.markdown('<div class="field-label">&nbsp;</div>', unsafe_allow_html=True)
+            search_clicked = st.button("Search", use_container_width=True, type="primary")
+
+        prof_active = selected_prof != PLACEHOLDER_PROF
+        day_active = selected_day != PLACEHOLDER_DAY
+        time_active = selected_time != PLACEHOLDER_TIME
+
+        prof_disp = escape_html(selected_prof) if prof_active else "—"
+        day_disp = escape_html(selected_day) if day_active else "—"
+        time_disp = escape_html(selected_time) if time_active else "—"
+
+        st.markdown(f"""
+        <div class="selection-track">
+          <span class="sel-chip {'active' if prof_active else ''}">
+            <span>👤</span>
+            <span class="sel-lab">Faculty</span>
+            <span class="sel-val">{prof_disp}</span>
+          </span>
+          <span class="sel-arrow">→</span>
+          <span class="sel-chip {'active' if day_active else ''}">
+            <span>📅</span>
+            <span class="sel-lab">Day</span>
+            <span class="sel-val">{day_disp}</span>
+          </span>
+          <span class="sel-arrow">→</span>
+          <span class="sel-chip {'active' if time_active else ''}">
+            <span>🕐</span>
+            <span class="sel-lab">Time</span>
+            <span class="sel-val">{time_disp}</span>
+          </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ════════════════════════════════════════════════════════════════[...]
+    # RESULTS
+    # ════════════════════════════════════════════════════════════════[...]
+    TYPE_CHIP_MAP = {
+        "theory":    ("chip-theory",    "type-theory",    "Theory"),
+        "tutorial":  ("chip-tutorial",  "type-tutorial",  "Tutorial"),
+        "lab":       ("chip-lab",       "type-lab",       "Lab"),
+        "practical": ("chip-practical", "type-practical", "Practical"),
+    }
+
+    def classify(ltype: str):
+        t = (ltype or "").lower()
+        if "theory" in t:
+            return TYPE_CHIP_MAP["theory"]
+        if "tutorial" in t:
+            return TYPE_CHIP_MAP["tutorial"]
+        if "lab" in t:
+            return TYPE_CHIP_MAP["lab"]
+        if "practical" in t:
+            return TYPE_CHIP_MAP["practical"]
+        return ("chip-extra", "type-extra", ltype.title() if ltype else "Session")
+
+    if search_clicked:
+        if not (prof_active and day_active and time_active):
+            st.warning("Please select faculty, day, and time slot before searching.")
         else:
-            n = len(results)
-            st.markdown(f"""
-            <div class="results-bar">
-              <div class="results-title">Schedule for <span class="who">{escape_html(selected_prof)}</span></div>
-              <div class="results-pill">{n} session{"s" if n != 1 else ""}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            results = df[
+                (df["professor"] == selected_prof)
+                & (df["day"] == selected_day)
+                & (df["time_slot"] == selected_time)
+            ].copy()
 
-            total = len(results)
-            for idx, (_, row) in enumerate(results.iterrows(), start=1):
-                chip_cls, card_cls, chip_label = classify(row["type"])
-                index_tag = f"{idx:02d} / {total:02d}" if total > 1 else ""
+            if results.empty:
                 st.markdown(f"""
-                <div class="card {card_cls}">
-                  <div class="card-top">
-                    <span class="chip {chip_cls}">{chip_label}</span>
-                    <span class="card-index">{index_tag}</span>
-                  </div>
-                  <div class="card-subject">{escape_html(row['subject'])}</div>
-                  <div class="card-meta">
-                    <div>
-                      <div class="meta-label">Room</div>
-                      <div class="meta-value">{escape_html(row['room'])}</div>
-                    </div>
-                    <div>
-                      <div class="meta-label">Division</div>
-                      <div class="meta-value">{escape_html(row['division'])}</div>
-                    </div>
-                    <div>
-                      <div class="meta-label">Day</div>
-                      <div class="meta-value">{escape_html(row['day'])}</div>
-                    </div>
-                    <div>
-                      <div class="meta-label">Time</div>
-                      <div class="meta-value">{escape_html(row['time_slot'])}</div>
-                    </div>
+                <div class="empty-box">
+                  <div class="empty-title">No scheduled session</div>
+                  <div class="empty-sub">
+                    <b>{escape_html(selected_prof)}</b> has no class on
+                    <b>{escape_html(selected_day)}</b> at <b>{escape_html(selected_time)}</b>.
+                    This may be a free period.
                   </div>
                 </div>
                 """, unsafe_allow_html=True)
-
-            # ════════════════════════════════════════════════════════════════
-            # SCHEDULE CHANGE — Replace professor dropdowns
-            # ════════════════════════════════════════════════════════════════
-            st.markdown('<div class="soft-divider"></div>', unsafe_allow_html=True)
-            st.markdown(f"""
-            <div class="panel-head">
-              <div class="panel-title">Replace professor for schedule change</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            col_rep1, col_rep2 = st.columns([1, 1], gap="small")
-
-            with col_rep1:
-                st.markdown('<div class="field-label">Replace professor</div>', unsafe_allow_html=True)
-                replace_from = st.selectbox(
-                    "Replace professor",
-                    options=[PLACEHOLDER_PROF] + all_professors,
-                    label_visibility="collapsed",
-                    key="replace_from_select",
-                )
-
-            with col_rep2:
-                # Generate list of professors excluding the one selected in "Replace professor"
-                replace_to_options = [PLACEHOLDER_PROF]
-                if replace_from != PLACEHOLDER_PROF:
-                    replace_to_options = [PLACEHOLDER_PROF] + [p for p in all_professors if p != replace_from]
-                
-                st.markdown('<div class="field-label">Replace with</div>', unsafe_allow_html=True)
-                replace_to = st.selectbox(
-                    "Replace with",
-                    options=replace_to_options,
-                    label_visibility="collapsed",
-                    key="replace_to_select",
-                    disabled=replace_from == PLACEHOLDER_PROF,
-                )
-
-            # Show revised schedule if both selections are made
-            if replace_from != PLACEHOLDER_PROF and replace_to != PLACEHOLDER_PROF:
-                revised_results = results.copy()
-                revised_results["professor"] = replace_to
-
+            else:
+                n = len(results)
                 st.markdown(f"""
                 <div class="results-bar">
-                  <div class="results-title">Revised schedule</div>
+                  <div class="results-title">Schedule for <span class="who">{escape_html(selected_prof)}</span></div>
+                  <div class="results-pill">{n} session{"s" if n != 1 else ""}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
-                revised_total = len(revised_results)
-                for idx, (_, row) in enumerate(revised_results.iterrows(), start=1):
+                total = len(results)
+                for idx, (_, row) in enumerate(results.iterrows(), start=1):
                     chip_cls, card_cls, chip_label = classify(row["type"])
-                    index_tag = f"{idx:02d} / {revised_total:02d}" if revised_total > 1 else ""
+                    index_tag = f"{idx:02d} / {total:02d}" if total > 1 else ""
                     st.markdown(f"""
                     <div class="card {card_cls}">
                       <div class="card-top">
@@ -942,10 +904,6 @@ if search_clicked:
                       </div>
                       <div class="card-subject">{escape_html(row['subject'])}</div>
                       <div class="card-meta">
-                        <div>
-                          <div class="meta-label">Professor</div>
-                          <div class="meta-value">{escape_html(row['professor'])}</div>
-                        </div>
                         <div>
                           <div class="meta-label">Room</div>
                           <div class="meta-value">{escape_html(row['room'])}</div>
