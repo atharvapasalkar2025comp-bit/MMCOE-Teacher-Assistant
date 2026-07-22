@@ -3,9 +3,9 @@ import pandas as pd
 import os
 import re
 
-# ════════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════[...]
 # PAGE CONFIG
-# ════════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════[...]
 st.set_page_config(
     page_title="MMCOE Teacher Assistant",
     page_icon="🎓",
@@ -109,9 +109,9 @@ def _on_day_change() -> None:
     st.session_state["time_select"] = PLACEHOLDER_TIME
 
 
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 # STYLES
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap');
@@ -643,9 +643,9 @@ st.components.v1.html("""
 """, height=0)
 
 
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 # HERO
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 n_profs = len(all_professors)
 n_records = len(df)
 n_divisions = df["division"].nunique() if DATA_OK else 0
@@ -671,9 +671,9 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 # DATA-MISSING GUARD
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 if not DATA_OK:
     st.markdown("""
     <div class="status-banner">
@@ -683,9 +683,9 @@ if not DATA_OK:
     st.stop()
 
 
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 # SESSION STATE — safe defaults
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 for key, default in (
     ("prof_select", PLACEHOLDER_PROF),
     ("day_select", PLACEHOLDER_DAY),
@@ -695,9 +695,9 @@ for key, default in (
         st.session_state[key] = default
 
 
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 # SEARCH PANEL — cascading options derived from CSV per selection step
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 prof_options = [PLACEHOLDER_PROF] + all_professors
 _ensure_option("prof_select", prof_options, PLACEHOLDER_PROF)
 selected_prof = st.session_state["prof_select"]
@@ -797,9 +797,9 @@ with st.container(border=True):
     """, unsafe_allow_html=True)
 
 
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 # RESULTS
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 TYPE_CHIP_MAP = {
     "theory":    ("chip-theory",    "type-theory",    "Theory"),
     "tutorial":  ("chip-tutorial",  "type-tutorial",  "Tutorial"),
@@ -883,10 +883,93 @@ if search_clicked:
                 </div>
                 """, unsafe_allow_html=True)
 
+            # ════════════════════════════════════════════════════════════════
+            # SCHEDULE CHANGE — Replace professor dropdowns
+            # ════════════════════════════════════════════════════════════════
+            st.markdown('<div class="soft-divider"></div>', unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="panel-head">
+              <div class="panel-title">Replace professor for schedule change</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-# ════════════════════════════════════════════════════════════════════════════
+            col_rep1, col_rep2 = st.columns([1, 1], gap="small")
+
+            with col_rep1:
+                st.markdown('<div class="field-label">Replace professor</div>', unsafe_allow_html=True)
+                replace_from = st.selectbox(
+                    "Replace professor",
+                    options=[PLACEHOLDER_PROF] + all_professors,
+                    label_visibility="collapsed",
+                    key="replace_from_select",
+                )
+
+            with col_rep2:
+                # Generate list of professors excluding the one selected in "Replace professor"
+                replace_to_options = [PLACEHOLDER_PROF]
+                if replace_from != PLACEHOLDER_PROF:
+                    replace_to_options = [PLACEHOLDER_PROF] + [p for p in all_professors if p != replace_from]
+                
+                st.markdown('<div class="field-label">Replace with</div>', unsafe_allow_html=True)
+                replace_to = st.selectbox(
+                    "Replace with",
+                    options=replace_to_options,
+                    label_visibility="collapsed",
+                    key="replace_to_select",
+                    disabled=replace_from == PLACEHOLDER_PROF,
+                )
+
+            # Show revised schedule if both selections are made
+            if replace_from != PLACEHOLDER_PROF and replace_to != PLACEHOLDER_PROF:
+                revised_results = results.copy()
+                revised_results["professor"] = replace_to
+
+                st.markdown(f"""
+                <div class="results-bar">
+                  <div class="results-title">Revised schedule</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                revised_total = len(revised_results)
+                for idx, (_, row) in enumerate(revised_results.iterrows(), start=1):
+                    chip_cls, card_cls, chip_label = classify(row["type"])
+                    index_tag = f"{idx:02d} / {revised_total:02d}" if revised_total > 1 else ""
+                    st.markdown(f"""
+                    <div class="card {card_cls}">
+                      <div class="card-top">
+                        <span class="chip {chip_cls}">{chip_label}</span>
+                        <span class="card-index">{index_tag}</span>
+                      </div>
+                      <div class="card-subject">{escape_html(row['subject'])}</div>
+                      <div class="card-meta">
+                        <div>
+                          <div class="meta-label">Professor</div>
+                          <div class="meta-value">{escape_html(row['professor'])}</div>
+                        </div>
+                        <div>
+                          <div class="meta-label">Room</div>
+                          <div class="meta-value">{escape_html(row['room'])}</div>
+                        </div>
+                        <div>
+                          <div class="meta-label">Division</div>
+                          <div class="meta-value">{escape_html(row['division'])}</div>
+                        </div>
+                        <div>
+                          <div class="meta-label">Day</div>
+                          <div class="meta-value">{escape_html(row['day'])}</div>
+                        </div>
+                        <div>
+                          <div class="meta-label">Time</div>
+                          <div class="meta-value">{escape_html(row['time_slot'])}</div>
+                        </div>
+                      </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+
+# ════════════════════════════════════════════════════════════════[...]
 # FOOTER
-# ════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════[...]
 st.markdown('<div class="soft-divider"></div>', unsafe_allow_html=True)
 st.markdown("""
 <div class="footer">
